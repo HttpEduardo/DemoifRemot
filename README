@@ -1,0 +1,133 @@
+This repository contains two related (but separate) IF demos. I will
+describe them separately.
+
+    -----------------------------------------------------------------
+
+Remote-IF: Demonstrates connecting a server-side IF interpreter (using
+RemGlk) to a client-side IF display library (GlkOte).
+
+Written by Andrew Plotkin. The remote-if.py script is in the public domain.
+
+This script launches a Tornado web server which can manage an IF game
+as a subprocess. The web client connects to the game via the GlkOte
+library (included).
+
+To try this...
+
+- Compile Glulxe with RemGlk. Use the latest GitHub version of RemGlk:
+   https://github.com/erkyrath/remglk
+- Download the Glulx version of Colossal Cave: 
+   http://ifarchive.org/if-archive/games/glulx/advent.ulx
+- Type:
+   python3 remote-if.py --debug --command='glulxe advent.ulx'
+- In your browser, visit:
+   http://localhost:4000/
+- Press "log in", then "play the game".
+
+The connection between GlkOte and the server is handled with AJAX requests.
+If you add "--connect=ws", it will use Websocket requests instead. They
+both work; I just wanted to provide sample code for both.
+
+To try the Glulxe experimental debugger, compile Glulxe with the VM_DEBUGGER
+option. Then invoke it like this:
+   python3 remote-if.py --debug --gidebug --command='glulxe -D advent.ulx'
+
+(The --gidebug option activates the HTML debugging console; the -D option
+for Glulxe activates the back-end debugger feature.)
+
+To try a game with graphics...
+
+- Download Sensory Jam:
+  http://eblong.com/zarf/glulx/sensory.blb
+- Also download the Python BlorbTool script:
+  http://eblong.com/zarf/blorb/blorbtool.py
+- Create a resource subdirectory in the static directory:
+  mkdir static/resource
+- Run BlorbTool to unpack the image data into the resource dir:
+  python blorbtool.py sensory.blb giload static/resource
+  (this will create files static/resource/pict-0.jpeg, etc)
+- Type:
+  python3 remote-if.py --debug --command='glulxer -ru http://localhost:4000/static/resource/ sensory.blb'
+
+The -ru argument tells the display library to fetch images using URLs of
+the form http://localhost:4000/static/resource/pict-0.jpeg. See the
+RemGlk docs: http://eblong.com/zarf/glk/remglk/docs.html
+
+(You might think that you could use the -rd argument to serve the files
+directly from the local file system. This does not work, because modern
+browsers will not allow an http: web page to load file: image URLs.)
+
+This is a demo, *not* a production-ready solution.
+
+- This has no database component, nor any other sort of persistence.
+  Instances of the IF game run as subprocesses of the server. If the
+  server restarts, the games are all killed.
+
+- Since the IF games run as subprocesses, they consume memory for as
+  long as they run. There is currently no reaping of abandoned games,
+  so the server will eventually consume all RAM and choke.
+
+- File dialog operations can only prompt for a bare filename.
+
+- If you reload your browser window, RemGlk does not respond sensibly.
+
+    -----------------------------------------------------------------
+
+Transcript-IF: Demonstrates accepting transcript recording from a
+client-side IF display library (GlkOte).
+
+Written by Andrew Plotkin. The transcript-if.py script is in the public
+domain.
+
+This serves two purposes. First, it's a simple way to catch transcript
+data from GlkOte/Quixe. Received data is printed to stdout. You could
+alter this script to store it in a database or whatever else you wanted.
+
+Second, the server allows other users to join and watch the game be
+played in real time! Since the original game library is sending complete
+I/O updates, the server can reflect them out to viewers.
+
+To use this, install Tornado (version 3) and launch this script:
+  python3 transcript-if.py
+
+Then open http://localhost:4000/transcript-if.html. Game updates will be
+received by the server and printed to stdout.
+
+You can then visit http://localhost:4000/ in a web browser to see
+a list of connected games. Select one, and you will see the current
+game state; it will update as the original game receives input.
+
+You could run Quixe this way if you replace transcript-if.html with
+Quixe's play.html file. You'd have to add
+  recording_url: 'http://localhost:4000/record',
+to the game_options object in play.html. You'd also need to change all
+of the links in play.html (JS, CSS) to refer to the static/ subdirectory.
+(See transcript-if.html.)
+
+This is a demo, *not* a production-ready solution.
+
+- Game information is not stored in a database. It's kept in memory
+  forever, which means that the server will eventually consume all RAM
+  and choke.
+
+- The server does not try to reformat the IF display state for the
+  viewer's window size. Everything appears in a pane the size of the
+  original game's window.
+
+    -----------------------------------------------------------------
+
+These scripts require:
+
+  Python 3 (tested with Python 3.9)
+  Tornado web server (tested with Tornado 6.1)
+    http://www.tornadoweb.org/
+  (For remote-if.py) An application (such as Glulxe) compiled with
+    RemGlk 0.3.0 or later
+    http://eblong.com/zarf/glk/
+
+This package contains the following additional libraries:
+
+  jQuery JavaScript Library v1.12.4
+    http://jquery.com/  (MIT license)
+  GlkOte 2.3.2
+    http://eblong.com/zarf/glk/glkote.html  (MIT license)
